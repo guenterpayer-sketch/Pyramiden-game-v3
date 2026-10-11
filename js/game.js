@@ -620,7 +620,7 @@ window.__innenraeume = {
   start(i) {
     startPuzzle(i);
   },
-  move: (name) => doMoveName(name),
+  move: (arg) => (Array.isArray(arg) ? tryMove(arg) : doMoveName(arg)),
   turn: (key) => doTurnKey(key),
   busy: () => busy,
 };

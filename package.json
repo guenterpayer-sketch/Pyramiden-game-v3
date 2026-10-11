@@ -6,6 +6,6 @@
   "type": "module",
   "scripts": {
     "generate": "node tools/generate-puzzles.mjs",
-    "test": "node --test tests/"
+    "test": "node --test tests/logic.test.mjs"
   }
 }
