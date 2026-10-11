@@ -179,6 +179,9 @@
       .hud { padding: 12px 16px; }
       .title { font-size: 0.98rem; }
       .panel { padding: 18px; }
+      .dpad { grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); }
+      .dpad button { width: 48px; height: 48px; font-size: 1.1rem; }
+      .turns button { font-size: 0.8rem; padding: 8px 6px; min-height: 44px; }
     }
     @media (max-width: 600px) and (orientation: portrait) {
       .turns { grid-template-columns: repeat(3, auto); }
@@ -196,7 +199,7 @@
     </div>
     <div class="bottom">
       <div class="group">
-        <div class="group-label">Gehen (Pfeiltasten / WASD)</div>
+        <div class="group-label">Gehen</div>
         <div class="dpad">
           <button class="up" data-move="up" aria-label="Vorwärts">▲</button>
           <button class="left" data-move="left" aria-label="Links">◀</button>

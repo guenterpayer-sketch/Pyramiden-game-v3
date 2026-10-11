@@ -247,11 +247,14 @@ function buildPuzzle(index) {
 const orbit = { yaw: 0.75, pitch: 0.42, dist: 15.5 };
 const target = new THREE.Vector3(0, 0.3, 0);
 function updateCamera() {
+  // Auf schmalen Bildschirmen (Hochformat) weiter weg, damit die ganze Pyramide sichtbar bleibt
+  const aspect = window.innerWidth / window.innerHeight;
+  const dist = aspect < 0.9 ? orbit.dist * (0.9 / aspect) : orbit.dist;
   const cp = Math.cos(orbit.pitch);
   camera.position.set(
-    target.x + orbit.dist * Math.sin(orbit.yaw) * cp,
-    target.y + orbit.dist * Math.sin(orbit.pitch),
-    target.z + orbit.dist * Math.cos(orbit.yaw) * cp,
+    target.x + dist * Math.sin(orbit.yaw) * cp,
+    target.y + dist * Math.sin(orbit.pitch),
+    target.z + dist * Math.cos(orbit.yaw) * cp,
   );
   camera.lookAt(target);
 }
