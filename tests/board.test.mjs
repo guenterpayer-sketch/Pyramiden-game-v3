@@ -209,15 +209,17 @@ test('die gespeicherte Lösung löst das Rätsel wirklich', () => {
 });
 
 test('es müssen mehrere Bauteile umgelegt werden, und die Rätsel werden größer', () => {
-  let prev = 0;
-  for (const level of LEVELS) {
+  const sizes = LEVELS.map((l) => l.comps.length);
+  const flipsOf = (level) => {
     const orient = level.comps.map((c) => c.o ?? 0);
     const sol = level.comps.map((c) => (c.t === 'M' || c.t === 'S' ? (c.sol ?? null) : null));
-    const flips = distance(level, orient, sol);
-    assert.ok(flips >= 2, `${level.id}: nur ${flips} umzulegen`);
-    assert.ok(level.comps.length >= prev, `${level.id} ist kleiner als das vorige`);
-    prev = level.comps.length;
-  }
+    return distance(level, orient, sol);
+  };
+  for (const level of LEVELS) assert.ok(flipsOf(level) >= 2, `${level.id}: nur ${flipsOf(level)} umzulegen`);
+  assert.equal(LEVELS.length, 10);
+  for (const s of sizes) assert.ok(s >= sizes[0], 'kein Rätsel ist kleiner als das erste');
+  assert.ok(sizes.at(-1) > sizes[0] * 2, 'das letzte Rätsel ist deutlich größer');
+  assert.ok(flipsOf(LEVELS.at(-1)) > flipsOf(LEVELS[0]), 'das letzte Rätsel braucht mehr Züge');
 });
 
 test('spätere Rätsel enthalten Kristalle und Prismen', () => {

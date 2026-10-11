@@ -32,9 +32,13 @@ const PLAN = [
   { name: 'Erster Funke', K: 3, P: 2, crystals: 0, splitters: 0, decoyM: 1, decoyF: 0, blockers: 3, minFlip: 2, maxSol: 1, target: 120 },
   { name: 'Umweg', K: 4, P: 2, crystals: 1, splitters: 0, decoyM: 2, decoyF: 1, blockers: 4, minFlip: 3, maxSol: 1, target: 180 },
   { name: 'Um die Ecke', K: 4, P: 3, crystals: 1, splitters: 0, decoyM: 3, decoyF: 1, blockers: 5, minFlip: 3, maxSol: 1, target: 240 },
+  { name: 'Spiegelsaal', K: 5, P: 3, crystals: 1, splitters: 0, decoyM: 4, decoyF: 2, blockers: 5, minFlip: 4, maxSol: 1, target: 270 },
   { name: 'Prisma', K: 5, P: 3, crystals: 1, splitters: 1, decoyM: 3, decoyF: 2, blockers: 6, minFlip: 4, maxSol: 1, target: 300 },
+  { name: 'Lichtfächer', K: 6, P: 3, crystals: 2, splitters: 1, decoyM: 4, decoyF: 2, blockers: 6, minFlip: 5, maxSol: 1, target: 360 },
   { name: 'Doppelstrahl', K: 6, P: 3, crystals: 2, splitters: 2, decoyM: 4, decoyF: 2, blockers: 6, minFlip: 5, maxSol: 1, target: 420 },
-  { name: 'Gipfelglanz', K: 7, P: 4, crystals: 2, splitters: 2, decoyM: 5, decoyF: 3, blockers: 8, minFlip: 6, maxSol: 1, target: 540 },
+  { name: 'Zwielicht', K: 6, P: 4, crystals: 2, splitters: 2, decoyM: 5, decoyF: 3, blockers: 7, minFlip: 6, maxSol: 1, target: 480 },
+  { name: 'Sternenkrone', K: 7, P: 4, crystals: 3, splitters: 2, decoyM: 5, decoyF: 3, blockers: 8, minFlip: 6, maxSol: 1, target: 540 },
+  { name: 'Gipfelglanz', K: 7, P: 5, crystals: 3, splitters: 2, decoyM: 6, decoyF: 3, blockers: 9, minFlip: 7, maxSol: 1, target: 600 },
 ];
 
 const orientFor = (din, dout) => {

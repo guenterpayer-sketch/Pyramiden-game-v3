@@ -4,222 +4,302 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Lichtpyramide</title>
-  <meta name="description" content="Ein ruhiges 3D-Rätsel: Lenke einen Lichtstrahl über Spiegel, um die Ecken der Pyramide bis zur Spitze.">
+  <meta name="description" content="Ein ruhiges 3D-Rätsel: Lenke einen Lichtstrahl über Spiegel um die Ecken einer Kristallpyramide bis zur Spitze.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700&display=swap">
   <style>
+    /* Nachtglas: dunkle, durchscheinende Flächen über der 3D-Szene, goldenes Licht als einziger warmer Akzent */
     :root {
-      --ink: #1d2140;
-      --paper: rgba(236, 240, 255, 0.94);
-      --accent: #5b4ad6;
-      --accent-ink: #ffffff;
-      --line: rgba(29, 33, 64, 0.2);
-      --gold: #f0b43c;
-      --shadow: 0 10px 30px rgba(5, 6, 30, 0.45);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --ink: #e9ecff;
-        --paper: rgba(22, 26, 58, 0.94);
-        --accent: #8f7dff;
-        --accent-ink: #0c1030;
-        --line: rgba(233, 236, 255, 0.22);
-      }
-    }
-    :root[data-theme="dark"] {
-      --ink: #e9ecff;
-      --paper: rgba(22, 26, 58, 0.94);
-      --accent: #8f7dff;
-      --accent-ink: #0c1030;
-      --line: rgba(233, 236, 255, 0.22);
+      color-scheme: dark;
+      --night: #070a22;
+      --glass: rgba(16, 20, 54, 0.62);
+      --glass-strong: rgba(14, 17, 46, 0.86);
+      --edge: rgba(150, 190, 255, 0.22);
+      --edge-bright: rgba(160, 225, 255, 0.55);
+      --text: #e8ecff;
+      --muted: rgba(222, 228, 255, 0.68);
+      --gold: #ffcf6e;
+      --gold-deep: #e9a23b;
+      --cyan: #8fe9ff;
+      --rose: #ff86cf;
+      --shadow: 0 18px 50px rgba(0, 0, 10, 0.55);
+      --font-display: "Marcellus", "Palatino Linotype", Palatino, Georgia, serif;
+      --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
       height: 100%;
       overflow: hidden;
-      background: #0c1030;
-      color: var(--ink);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--night);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
     }
     canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+    .hidden { display: none !important; }
+
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(14px) saturate(1.2);
+      -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    }
+
+    /* ---------- Spielanzeige ---------- */
     .hud {
       position: fixed;
       inset: 0;
       pointer-events: none;
-      padding: 16px;
-      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      padding: max(14px, env(safe-area-inset-top)) 16px max(14px, env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      gap: 12px;
     }
     .hud > * { pointer-events: auto; }
     .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .card {
-      background: var(--paper);
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      padding: 10px 14px;
-      backdrop-filter: blur(6px);
-      min-width: 0;
+    .info { padding: 12px 16px 12px; min-width: 0; max-width: 340px; }
+    .eyebrow { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .info .title { font-family: var(--font-display); font-size: 1.35rem; line-height: 1.2; margin-top: 2px; text-wrap: balance; }
+    .stats { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 0.86rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .stats strong { color: var(--text); font-weight: 600; }
+    .stats .crystal strong { color: var(--rose); }
+    .timebar { height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); margin-top: 10px; overflow: hidden; }
+    .timebar > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--gold-deep), var(--gold)); transition: width 1s linear; }
+    .round {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: grid; place-items: center; font-size: 1.15rem;
     }
-    .title { font-weight: 700; font-size: 1.05rem; }
-    .stats { font-size: 0.9rem; margin-top: 2px; font-variant-numeric: tabular-nums; opacity: 0.9; }
-    .timebar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
-    .timebar > div { height: 100%; width: 0; background: var(--gold); transition: width 1s linear; }
-    .timenote { font-size: 0.75rem; opacity: 0.75; margin-top: 4px; }
     .bottom { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .tip {
-      background: var(--paper);
+      align-self: center;
+      max-width: min(520px, 100%);
+      text-align: center;
+      padding: 10px 18px;
       border-radius: 999px;
-      padding: 8px 16px;
-      font-size: 0.9rem;
-      box-shadow: var(--shadow);
-      text-align: center;
-      max-width: 100%;
+      font-size: 0.92rem;
+      transition: opacity 0.6s ease, transform 0.6s ease;
     }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-    button {
-      font: inherit;
-      color: var(--ink);
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 10px 16px;
-      min-height: 52px;
-      min-width: 52px;
-      box-shadow: var(--shadow);
-      cursor: pointer;
+    .tip.fade { opacity: 0; transform: translateY(6px); pointer-events: none; }
+    .controls { align-self: center; display: flex; gap: 6px; padding: 6px; border-radius: 22px; }
+    .ctl {
+      background: transparent; border: 0; border-radius: 16px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px; min-width: 70px; min-height: 58px; padding: 6px 10px;
+      color: var(--text);
     }
-    button:hover { border-color: var(--accent); }
-    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-    button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
-    button.ghost { background: transparent; box-shadow: none; }
+    .ctl:hover { background: rgba(255, 255, 255, 0.07); }
+    .ctl:active { background: rgba(255, 255, 255, 0.12); }
+    .ctl:disabled { opacity: 0.35; cursor: default; }
+    .ctl .ico { font-size: 1.3rem; line-height: 1; }
+    .ctl .lbl { font-size: 0.72rem; letter-spacing: 0.04em; color: var(--muted); }
+    .ctl.hint .ico { color: var(--gold); }
+
     .toast {
-      position: fixed;
-      left: 50%;
-      top: 22%;
-      transform: translateX(-50%);
-      background: var(--paper);
-      padding: 10px 16px;
-      border-radius: 12px;
-      box-shadow: var(--shadow);
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      pointer-events: none;
-      max-width: 90vw;
-      text-align: center;
+      position: fixed; left: 50%; top: 18%;
+      transform: translate(-50%, -6px);
+      padding: 10px 18px; border-radius: 14px;
+      opacity: 0; transition: opacity 0.35s ease, transform 0.35s ease;
+      pointer-events: none; max-width: calc(100vw - 32px); text-align: center; font-size: 0.92rem;
+      z-index: 8;
     }
-    .toast.show { opacity: 1; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    /* ---------- Überlagerungen ---------- */
     .overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(5, 6, 30, 0.55);
-      backdrop-filter: blur(3px);
-      padding: 16px;
-      z-index: 5;
+      position: fixed; inset: 0; z-index: 6;
+      display: flex; align-items: center; justify-content: center;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
     }
-    .hidden { display: none !important; }
-    .panel {
-      background: var(--paper);
-      border-radius: 20px;
-      box-shadow: var(--shadow);
-      padding: 24px;
+    .overlay.dim { background: radial-gradient(ellipse at center, rgba(7, 10, 34, 0.35), rgba(7, 10, 34, 0.75)); }
+    .sheet {
       width: min(460px, 100%);
-      max-height: 92vh;
+      max-height: 100%;
       overflow: auto;
+      padding: 26px 24px 22px;
+      background: var(--glass-strong);
+      border-radius: 24px;
+      scrollbar-width: thin;
     }
-    .panel h1 { margin: 0 0 4px; font-size: 1.9rem; }
-    .panel h2 { margin: 0 0 8px; font-size: 1.3rem; }
-    .panel p { line-height: 1.5; margin: 8px 0; }
-    .panel .sub { opacity: 0.8; margin-top: 0; }
-    .steps { margin: 12px 0; padding-left: 20px; line-height: 1.5; }
-    .steps li { margin: 6px 0; }
-    .levels { display: grid; gap: 8px; margin: 14px 0; }
-    .levels button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; text-align: left; box-shadow: none; }
-    .levels .meta { font-size: 0.85rem; opacity: 0.85; white-space: nowrap; }
-    .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
-    .stack button { width: 100%; }
-    .toggle-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 6px 0; }
-    kbd { font-family: inherit; background: var(--line); border-radius: 6px; padding: 1px 6px; }
-    @media (max-width: 600px) {
-      .hud { padding: 12px 16px; }
-      .title { font-size: 0.98rem; }
-      .panel { padding: 18px; }
-      .tip { font-size: 0.85rem; }
+    .sheet h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; margin: 0 0 6px; }
+    .sheet p { line-height: 1.55; margin: 8px 0; color: var(--muted); }
+
+    /* Startbildschirm: links das Menü, rechts die Pyramide (am Handy unten das Menü) */
+    .overlay.start { justify-content: flex-start; align-items: stretch; }
+    .start .sheet { width: min(440px, 100%); background: var(--glass); display: flex; flex-direction: column; gap: 14px; }
+    .logo {
+      font-family: var(--font-display); font-weight: 400;
+      font-size: clamp(2.2rem, 6vw, 3.1rem); letter-spacing: 0.02em; margin: 0;
+      background: linear-gradient(180deg, #fff6dc 0%, var(--gold) 55%, var(--gold-deep) 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      filter: drop-shadow(0 0 18px rgba(255, 196, 90, 0.35));
+    }
+    .tagline { margin: -6px 0 0; color: var(--muted); font-size: 1rem; }
+    .howto { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 10px; }
+    .howto li { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: start; line-height: 1.45; color: var(--muted); }
+    .howto b { color: var(--text); font-weight: 600; }
+    .howto .ico {
+      width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
+      background: rgba(255, 255, 255, 0.06); border: 1px solid var(--edge); font-size: 1rem;
+    }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--muted); }
+    .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; background: var(--c); box-shadow: 0 0 8px var(--c); }
+    .section { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 6px 0 -4px; font-weight: 500; }
+    .levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .card {
+      text-align: left; padding: 10px 12px; border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04); border: 1px solid var(--edge);
+      display: grid; grid-template-columns: 30px 1fr; column-gap: 8px; align-items: center; min-width: 0;
+    }
+    .card:hover { border-color: var(--edge-bright); background: rgba(255, 255, 255, 0.07); }
+    .card .num { font-family: var(--font-display); font-size: 1.35rem; color: var(--cyan); grid-row: span 2; text-align: center; }
+    .card .name { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card .stars { font-size: 0.78rem; letter-spacing: 0.08em; color: rgba(255, 255, 255, 0.22); }
+    .card .stars .on { color: var(--gold); text-shadow: 0 0 8px rgba(255, 196, 90, 0.6); }
+    .card.next { border-color: rgba(255, 207, 110, 0.6); box-shadow: 0 0 0 1px rgba(255, 207, 110, 0.25), 0 0 24px rgba(255, 196, 90, 0.18); }
+    .primary {
+      border: 0; border-radius: 14px; padding: 13px 18px; min-height: 50px;
+      font-weight: 700; font-size: 1rem; letter-spacing: 0.02em; color: #2a1a05;
+      background: linear-gradient(180deg, #ffe2a0, var(--gold) 50%, var(--gold-deep));
+      box-shadow: 0 8px 26px rgba(255, 180, 60, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+    .primary:hover { filter: brightness(1.06); }
+    .secondary {
+      border-radius: 14px; padding: 12px 16px; min-height: 48px; font-weight: 600;
+      background: rgba(255, 255, 255, 0.06); border: 1px solid var(--edge);
+    }
+    .secondary:hover { border-color: var(--edge-bright); }
+    .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    .toggles { display: flex; gap: 10px; flex-wrap: wrap; }
+    .toggle {
+      flex: 1 1 140px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--edge);
+      min-height: 46px;
+    }
+    .toggle .val { font-weight: 600; color: var(--cyan); }
+    kbd { font-family: inherit; font-size: 0.85em; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--edge); border-radius: 6px; padding: 0 6px; }
+
+    /* Gewinn */
+    .win-stars { font-size: 2.4rem; letter-spacing: 0.18em; margin: 6px 0 2px; color: rgba(255, 255, 255, 0.15); }
+    .win-stars span { display: inline-block; transform: scale(0.4); opacity: 0; transition: transform 0.5s cubic-bezier(.3,1.6,.5,1), opacity 0.4s; }
+    .win-stars span.show { transform: scale(1); opacity: 1; }
+    .win-stars span.on { color: var(--gold); text-shadow: 0 0 18px rgba(255, 196, 90, 0.8); }
+    .win-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 4px; }
+    .fact { padding: 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--edge); text-align: center; }
+    .fact .v { font-family: var(--font-display); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+    .fact .k { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; }
+
+    @media (max-width: 720px) {
+      .overlay.start { align-items: flex-end; justify-content: center; }
+      .start .sheet { max-height: 64%; }
+      .info { max-width: 260px; padding: 10px 14px; }
+      .info .title { font-size: 1.15rem; }
+      .ctl { min-width: 62px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
     }
   </style>
 </head>
 <body>
   <div class="hud hidden" id="hud">
     <div class="top">
-      <div class="card">
+      <div class="info glass">
+        <div class="eyebrow" id="level-no">Rätsel 1 von 10</div>
         <div class="title" id="level-title">Rätsel</div>
-        <div class="stats" id="stats"></div>
-        <div class="timebar"><div id="timebar-fill"></div></div>
-        <div class="timenote" id="timenote"></div>
+        <div class="stats">
+          <span><strong id="stat-time">00:00</strong></span>
+          <span>Züge <strong id="stat-moves">0</strong> <span id="stat-goal"></span></span>
+          <span class="crystal" id="stat-crystal-wrap">◆ <strong id="stat-crystals">0/0</strong></span>
+        </div>
+        <div class="timebar" title="Richtzeit, nur zur Orientierung"><div id="timebar-fill"></div></div>
       </div>
-      <button id="menu-btn" aria-label="Menü">☰ Menü</button>
+      <button class="round glass" id="menu-btn" aria-label="Menü">☰</button>
     </div>
     <div class="bottom">
-      <div class="tip" id="tip">Tippe auf einen Spiegel, um ihn umzulegen. Lenke den Strahl zur Spitze.</div>
-      <div class="row">
-        <button id="turn-left" aria-label="Pyramide nach links drehen">⟲ Drehen</button>
-        <button id="hint-btn">✦ Tipp</button>
-        <button id="turn-right" aria-label="Pyramide nach rechts drehen">Drehen ⟳</button>
+    <div class="tip glass" id="tip"></div>
+    <nav class="controls glass" aria-label="Steuerung">
+      <button class="ctl" id="turn-left" aria-label="Pyramide nach links drehen"><span class="ico">⟲</span><span class="lbl">Drehen</span></button>
+      <button class="ctl" id="undo-btn" aria-label="Letzten Zug zurücknehmen"><span class="ico">↶</span><span class="lbl">Zurück</span></button>
+      <button class="ctl hint" id="hint-btn" aria-label="Tipp anzeigen"><span class="ico">✦</span><span class="lbl">Tipp</span></button>
+      <button class="ctl" id="turn-right" aria-label="Pyramide nach rechts drehen"><span class="ico">⟳</span><span class="lbl">Drehen</span></button>
+    </nav>
+    </div>
+  </div>
+
+  <div class="toast glass" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="overlay start" id="start">
+    <div class="sheet glass">
+      <h1 class="logo">Lichtpyramide</h1>
+      <p class="tagline">Lenke das Licht um die Ecken bis zur Spitze.</p>
+      <button class="primary" id="play-btn">Spielen</button>
+      <ul class="howto">
+        <li><span class="ico">◇</span><span><b>Spiegel antippen.</b> Er klappt um, und der Strahl nimmt sofort einen neuen Weg.</span></li>
+        <li><span class="ico">⟳</span><span><b>Pyramide drehen.</b> Ziehen oder die Drehen-Knöpfe. Das Licht läuft auch um die Ecken.</span></li>
+        <li><span class="ico">✦</span><span><b>Zur Spitze.</b> Der Strahl soll den Gipfel erreichen und alle Kristalle zum Leuchten bringen.</span></li>
+      </ul>
+      <div class="legend">
+        <span style="--c:#8fe9ff">Spiegel (drehbar)</span>
+        <span style="--c:#b49cff">Spiegel (fest)</span>
+        <span style="--c:#ffb35c">Prisma teilt</span>
+        <span style="--c:#ff86cf">Kristall</span>
+        <span style="--c:#3a3460">Sperrstein</span>
+      </div>
+      <div class="section">Rätsel</div>
+      <div class="levels" id="levels"></div>
+      <div class="toggles">
+        <button class="toggle" id="start-sound"><span>Ton</span><span class="val">an</span></button>
+        <button class="toggle" id="start-quality"><span>Effekte</span><span class="val">automatisch</span></button>
       </div>
     </div>
   </div>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-  <div class="overlay" id="start">
-    <div class="panel">
-      <h1>Lichtpyramide</h1>
-      <p class="sub">Ein ruhiges Rätsel um Licht, Spiegel und die Ecken einer Pyramide.</p>
-      <ol class="steps">
-        <li><strong>Ziel:</strong> Der Lichtstrahl soll die Spitze der Pyramide erreichen. Er startet an der leuchtenden Kugel am Fuß und folgt dem Pfeil.</li>
-        <li><strong>Spiegel umlegen:</strong> Tippe auf einen blauen Spiegel. Er klappt um, und der Strahl sucht sich sofort einen neuen Weg. Das Licht läuft auch um die Ecken auf die nächste Seite.</li>
-        <li><strong>Pyramide drehen:</strong> Ziehe mit dem Finger oder der Maus, oder nutze „Drehen“. So erreichst du die Spiegel auf der Rückseite.</li>
-      </ol>
-      <p>Schwarze Steine halten das Licht auf. Rosa Kristalle ◆ sollen leuchten. Orange Prismen teilen den Strahl. Violette Spiegel sind fest. Die Zeit wird nur angezeigt, es gibt kein Limit.</p>
-      <div class="levels" id="levels"></div>
-      <div class="toggle-line"><span>Ton</span><button class="ghost" id="start-sound" aria-pressed="true">an</button></div>
-    </div>
-  </div>
-
-  <div class="overlay hidden" id="menu">
-    <div class="panel">
-      <h2>Menü</h2>
+  <div class="overlay dim hidden" id="menu">
+    <div class="sheet glass">
+      <h2>Pause</h2>
       <div class="stack">
         <button class="primary" id="menu-resume">Weiter</button>
-        <button id="menu-restart">Dieses Rätsel neu beginnen</button>
-        <button id="menu-select">Rätselauswahl</button>
-        <div class="toggle-line"><span>Ton</span><button class="ghost" id="menu-sound" aria-pressed="true">an</button></div>
+        <button class="secondary" id="menu-restart">Rätsel neu beginnen</button>
+        <button class="secondary" id="menu-select">Rätselauswahl</button>
+        <div class="toggles">
+          <button class="toggle" id="menu-sound"><span>Ton</span><span class="val">an</span></button>
+          <button class="toggle" id="menu-quality"><span>Effekte</span><span class="val">automatisch</span></button>
+        </div>
       </div>
-      <h2 style="margin-top:20px">Bedienung</h2>
-      <p>
-        <strong>Spiegel umlegen:</strong> darauf tippen oder klicken.<br>
-        <strong>Pyramide drehen:</strong> ziehen, oder <kbd>Q</kbd> <kbd>E</kbd> (auch <kbd>←</kbd> <kbd>→</kbd>). Mausrad: näher oder weiter weg.<br>
-        <strong>Tipp:</strong> <kbd>H</kbd> zeigt einen Spiegel, der falsch steht.<br>
-        <kbd>Esc</kbd>: Menü.
+      <p style="margin-top:18px">
+        <b>Spiegel umlegen:</b> antippen oder anklicken.<br>
+        <b>Drehen:</b> ziehen, <kbd>Q</kbd> <kbd>E</kbd> oder <kbd>←</kbd> <kbd>→</kbd>.<br>
+        <b>Zurück:</b> <kbd>Z</kbd> · <b>Tipp:</b> <kbd>H</kbd> · <b>Menü:</b> <kbd>Esc</kbd><br>
+        Die Zeit läuft nur zur Orientierung. Es gibt kein Limit.
       </p>
     </div>
   </div>
 
-  <div class="overlay hidden" id="win">
-    <div class="panel">
-      <h2>Geschafft</h2>
-      <p id="win-stats"></p>
+  <div class="overlay dim hidden" id="win">
+    <div class="sheet glass" style="text-align:center">
+      <h2 id="win-title">Das Licht ist oben</h2>
+      <div class="win-stars" id="win-stars"><span>★</span><span>★</span><span>★</span></div>
+      <p id="win-text"></p>
+      <div class="win-facts">
+        <div class="fact"><div class="v" id="win-time">0:00</div><div class="k">ZEIT</div></div>
+        <div class="fact"><div class="v" id="win-moves">0</div><div class="k">ZÜGE</div></div>
+        <div class="fact"><div class="v" id="win-best">0</div><div class="k">BESTMÖGLICH</div></div>
+      </div>
       <div class="stack">
         <button class="primary" id="win-next">Nächstes Rätsel</button>
-        <button id="win-select">Rätselauswahl</button>
-        <button id="win-again">Noch einmal ansehen</button>
+        <button class="secondary" id="win-again">Noch einmal ansehen</button>
+        <button class="secondary" id="win-select">Rätselauswahl</button>
       </div>
     </div>
   </div>
