@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pyramidenpfad</title>
+  <meta name="description" content="Ein ruhiges 3D-Labyrinth auf den vier Seiten einer Pyramide. Finde den Weg zum goldenen Gipfel.">
+  <style>
+    :root {
+      --ink: #2e2433;
+      --paper: rgba(255, 244, 228, 0.93);
+      --accent: #b5651d;
+      --accent-ink: #ffffff;
+      --line: rgba(46, 36, 51, 0.18);
+      --gold: #e8a93a;
+      --shadow: 0 10px 30px rgba(20, 12, 40, 0.35);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #f4e8d6;
+        --paper: rgba(36, 28, 48, 0.92);
+        --accent: #e2a24a;
+        --accent-ink: #2a1c10;
+        --line: rgba(244, 232, 214, 0.2);
+      }
+    }
+    :root[data-theme="dark"] {
+      --ink: #f4e8d6;
+      --paper: rgba(36, 28, 48, 0.92);
+      --accent: #e2a24a;
+      --accent-ink: #2a1c10;
+      --line: rgba(244, 232, 214, 0.2);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #2b2450;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    .hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      padding: 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hud > * { pointer-events: auto; }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .card {
+      background: var(--paper);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 10px 14px;
+      backdrop-filter: blur(6px);
+      min-width: 0;
+    }
+    .title { font-weight: 700; font-size: 1.05rem; }
+    .stats { font-size: 0.9rem; margin-top: 2px; font-variant-numeric: tabular-nums; opacity: 0.9; }
+    .timebar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+    .timebar > div { height: 100%; width: 0; background: var(--gold); transition: width 1s linear; }
+    .timenote { font-size: 0.75rem; opacity: 0.75; margin-top: 4px; }
+    .bottom { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .tip {
+      background: var(--paper);
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow);
+      text-align: center;
+      max-width: 100%;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    button {
+      font: inherit;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 16px;
+      min-height: 52px;
+      min-width: 52px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+    button.ghost { background: transparent; box-shadow: none; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      top: 22%;
+      transform: translateX(-50%);
+      background: var(--paper);
+      padding: 10px 16px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show { opacity: 1; }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(20, 12, 40, 0.45);
+      backdrop-filter: blur(3px);
+      padding: 16px;
+      z-index: 5;
+    }
+    .hidden { display: none !important; }
+    .panel {
+      background: var(--paper);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      width: min(460px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+    }
+    .panel h1 { margin: 0 0 4px; font-size: 1.9rem; }
+    .panel h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .panel p { line-height: 1.5; margin: 8px 0; }
+    .panel .sub { opacity: 0.8; margin-top: 0; }
+    .steps { margin: 12px 0; padding-left: 20px; line-height: 1.5; }
+    .steps li { margin: 6px 0; }
+    .levels { display: grid; gap: 8px; margin: 14px 0; }
+    .levels button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; text-align: left; box-shadow: none; }
+    .levels .meta { font-size: 0.85rem; opacity: 0.85; white-space: nowrap; }
+    .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .stack button { width: 100%; }
+    .toggle-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 6px 0; }
+    kbd { font-family: inherit; background: var(--line); border-radius: 6px; padding: 1px 6px; }
+    @media (max-width: 600px) {
+      .hud { padding: 12px 16px; }
+      .title { font-size: 0.98rem; }
+      .panel { padding: 18px; }
+      .tip { font-size: 0.85rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hud hidden" id="hud">
+    <div class="top">
+      <div class="card">
+        <div class="title" id="level-title">Stufe</div>
+        <div class="stats" id="stats"></div>
+        <div class="timebar"><div id="timebar-fill"></div></div>
+        <div class="timenote" id="timenote"></div>
+      </div>
+      <button id="menu-btn" aria-label="Menü">☰ Menü</button>
+    </div>
+    <div class="bottom">
+      <div class="tip" id="tip">Tippe auf ein leuchtendes Feld neben der Figur.</div>
+      <div class="row">
+        <button id="turn-left" aria-label="Pyramide nach links drehen">⟲ Drehen</button>
+        <button id="hint-btn">✦ Tipp</button>
+        <button id="turn-right" aria-label="Pyramide nach rechts drehen">Drehen ⟳</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="overlay" id="start">
+    <div class="panel">
+      <h1>Pyramidenpfad</h1>
+      <p class="sub">Ein ruhiges Labyrinth auf den vier Seiten einer Pyramide.</p>
+      <ol class="steps">
+        <li><strong>Gehen:</strong> Tippe auf ein leuchtendes Feld direkt neben der Figur. Am Computer gehen auch die Pfeiltasten.</li>
+        <li><strong>Drehen:</strong> Ziehe mit dem Finger oder der Maus, um die Pyramide zu drehen. Die Buttons „Drehen“ drehen sie um eine Viertelrunde.</li>
+        <li><strong>Ziel:</strong> Der goldene Gipfel. Sterne einzusammeln ist freiwillig.</li>
+      </ol>
+      <p>Die Zeit wird nur angezeigt. Es gibt kein Limit.</p>
+      <div class="levels" id="levels"></div>
+      <div class="toggle-line"><span>Ton</span><button class="ghost" id="start-sound" aria-pressed="true">an</button></div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="menu">
+    <div class="panel">
+      <h2>Menü</h2>
+      <div class="stack">
+        <button class="primary" id="menu-resume">Weiter</button>
+        <button id="menu-restart">Diese Stufe neu beginnen</button>
+        <button id="menu-select">Stufenauswahl</button>
+        <div class="toggle-line"><span>Ton</span><button class="ghost" id="menu-sound" aria-pressed="true">an</button></div>
+      </div>
+      <h2 style="margin-top:20px">Bedienung</h2>
+      <p>
+        <strong>Gehen:</strong> auf ein leuchtendes Feld tippen, oder <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> / <kbd>W A S D</kbd>. Die Richtung gilt so, wie du sie auf dem Bildschirm siehst.<br>
+        <strong>Drehen:</strong> ziehen, oder <kbd>Q</kbd> <kbd>E</kbd>. Mausrad: näher oder weiter weg.<br>
+        <strong>Tipp:</strong> <kbd>H</kbd> zeigt ein Stück des Weges.<br>
+        <kbd>Esc</kbd>: Menü.
+      </p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="win">
+    <div class="panel">
+      <h2>Geschafft</h2>
+      <p id="win-stats"></p>
+      <div class="stack">
+        <button class="primary" id="win-next">Nächste Stufe</button>
+        <button id="win-select">Stufenauswahl</button>
+        <button id="win-again">Noch einmal ansehen</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>
