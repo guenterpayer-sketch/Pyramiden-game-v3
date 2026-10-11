@@ -4,12 +4,12 @@
 //   - es ist mit Drehungen lösbar,
 //   - es ist ohne Drehungen NICHT lösbar,
 //   - die kürzeste Lösung hat eine Mindestlänge und eine Mindestzahl an Drehungen.
-// Der Zufall ist festgelegt (Seed), damit das Ergebnis reproduzierbar ist.
+// Der Zufall ist über einen festen Seed reproduzierbar.
 
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { TIERS, solve } from '../js/logic.js';
+import { SIZE, ORIENTATIONS, canStand, solve } from '../js/logic.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, '..', 'js', 'puzzles.js');
@@ -25,108 +25,94 @@ function mulberry32(seed) {
   };
 }
 
+// minLen: Mindestzahl an Zügen und Drehungen zusammen (kürzeste Lösung)
 const PLAN = [
-  { name: 'Der erste Schritt', q0: 0.1, q1: 0.1, minLen: 20, minRot: 2 },
-  { name: 'Eine Treppe weiter', q0: 0.14, q1: 0.12, minLen: 30, minRot: 2 },
-  { name: 'Drehen lohnt sich', q0: 0.17, q1: 0.15, minLen: 40, minRot: 2 },
-  { name: 'Stufe um Stufe', q0: 0.2, q1: 0.18, minLen: 50, minRot: 3 },
-  { name: 'Der Weg hinauf', q0: 0.22, q1: 0.2, minLen: 60, minRot: 3 },
-  { name: 'Die Spitze', q0: 0.25, q1: 0.22, minLen: 70, minRot: 3 },
+  { name: 'Der erste Gang', size: 12, minLen: 4, minRot: 1 },
+  { name: 'Wand wird Boden', size: 16, minLen: 6, minRot: 1 },
+  { name: 'Kopfüber', size: 20, minLen: 7, minRot: 2 },
+  { name: 'Drei Achsen', size: 24, minLen: 8, minRot: 2 },
+  { name: 'Das Innere', size: 28, minLen: 9, minRot: 2 },
+  { name: 'Der Kern', size: 32, minLen: 10, minRot: 3 },
 ];
 
-const SEED = 20260;
-const MAX_ATTEMPTS = 20000;
+const SEED = 20262;
+const MAX_ATTEMPTS = 60000;
+const SAMPLES_PER_PUZZLE = 3000;
+const DIRS6 = [
+  [1, 0, 0],
+  [-1, 0, 0],
+  [0, 1, 0],
+  [0, -1, 0],
+  [0, 0, 1],
+  [0, 0, -1],
+];
 
-function buildPuzzle(rand, plan, index) {
-  // Stufe 0: Ring 3 breit, Kern 7x7 in der Mitte
-  const n0 = TIERS[0].n;
-  const grid0 = Array.from({ length: n0 }, (_, y) =>
-    Array.from({ length: n0 }, (_, x) => (isCore(x, y, n0, TIERS[0].w) ? '_' : '.')),
-  );
-  // Stufe 1: Ring 2 breit, Kern 3x3
-  const n1 = TIERS[1].n;
-  const grid1 = Array.from({ length: n1 }, (_, y) =>
-    Array.from({ length: n1 }, (_, x) => (isCore(x, y, n1, TIERS[1].w) ? '_' : '.')),
-  );
-  // Stufe 2: komplett begehbar, Ziel in der Mitte
-  const grid2 = Array.from({ length: TIERS[2].n }, () => Array(TIERS[2].n).fill('.'));
-  grid2[1][1] = 'G';
+const k3 = (v) => v.join(',');
 
-  const ringCells = (grid, n, w) => {
-    const cells = [];
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!isCore(x, y, n, w)) cells.push([x, y]);
-    return cells;
-  };
-
-  // Treppen Stufe 0 -> 1: Felder am inneren Rand von Stufe 0 (direkt neben dem Kern)
-  const inner0 = ringCells(grid0, n0, TIERS[0].w).filter(([x, y]) => touchesCore(x, y, n0, TIERS[0].w));
-  // Gegenstück auf Stufe 1: äußerster Ring
-  const outer1 = ringCells(grid1, n1, TIERS[1].w).filter(([x, y]) => edgeOf(x, y, n1) === 0);
-  // Treppen Stufe 1 -> 2: innerer Ring von Stufe 1 (neben dem Kern) und Rand von Stufe 2
-  const inner1 = ringCells(grid1, n1, TIERS[1].w).filter(([x, y]) => edgeOf(x, y, n1) === 1 && touchesCore(x, y, n1, TIERS[1].w));
-  const border2 = [...ringCells(grid2, 3, 2)].filter(([x, y]) => !(x === 1 && y === 1));
-
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const g0 = grid0.map((r) => [...r]);
-    const g1 = grid1.map((r) => [...r]);
-    const g2 = grid2.map((r) => [...r]);
-
-    const stairs0 = pick(rand, inner0, 2);
-    const landing1 = pick(rand, outer1, 2);
-    const stairs1 = pick(rand, inner1, 2);
-    const landing2 = pick(rand, border2, 2);
-    if (!stairs0 || !landing1 || !stairs1 || !landing2) continue;
-
-    for (const [x, y] of ringCells(g0, n0, TIERS[0].w)) if (rand() < plan.q0) g0[y][x] = '#';
-    for (const [x, y] of ringCells(g1, n1, TIERS[1].w)) if (rand() < plan.q1) g1[y][x] = '#';
-    for (const [x, y] of stairs0) g0[y][x] = 'S';
-    for (const [x, y] of landing1) g1[y][x] = 'S';
-    for (const [x, y] of stairs1) g1[y][x] = 'S';
-    for (const [x, y] of landing2) g2[y][x] = 'S';
-
-    // Startfeld: ein freier Ringboden auf Stufe 0
-    const freeStart = ringCells(g0, n0, TIERS[0].w).filter(([x, y]) => g0[y][x] === '.');
-    const [sx, sy] = freeStart[Math.floor(rand() * freeStart.length)];
-    g0[sy][sx] = 'P';
-
-    const scramble = [0, 1, 2].map(() => Math.floor(rand() * 4));
-    if (scramble.every((v) => v === 0)) continue;
-
-    const puzzle = { id: `p${index + 1}`, name: plan.name, scramble, tiers: [g0, g1, g2].map((g) => g.map((r) => r.join(''))) };
-
-    const withRot = solve(puzzle);
-    if (!withRot) continue;
-    if (withRot.actions.length < plan.minLen || withRot.rotations < plan.minRot) continue;
-    if (solve(puzzle, { allowRotate: false })) continue;
-
-    return { puzzle, solution: withRot };
+function randomShape(rand, size) {
+  const cells = new Map();
+  const start = [0, 1, 2].map(() => Math.floor(rand() * SIZE));
+  cells.set(k3(start), start);
+  let guard = 0;
+  while (cells.size < size && guard++ < 100000) {
+    const list = [...cells.values()];
+    const base = list[Math.floor(rand() * list.length)];
+    const d = DIRS6[Math.floor(rand() * 6)];
+    const n = [base[0] + d[0], base[1] + d[1], base[2] + d[2]];
+    if (n.some((c) => c < 0 || c >= SIZE)) continue;
+    cells.set(k3(n), n);
   }
-  return null;
+  return { cells: [...cells.values()], start };
 }
 
-function isCore(x, y, n, w) {
-  return x >= w && y >= w && x < n - w && y < n - w;
+// Größte Entfernung im Gang-Graphen von `start` (Schritte über Nachbarblöcke)
+function farthest(cells, start) {
+  const set = new Set(cells.map(k3));
+  const dist = new Map([[k3(start), 0]]);
+  const queue = [start];
+  let best = start;
+  for (let i = 0; i < queue.length; i++) {
+    const v = queue[i];
+    if (dist.get(k3(v)) > dist.get(k3(best))) best = v;
+    for (const d of DIRS6) {
+      const n = [v[0] + d[0], v[1] + d[1], v[2] + d[2]];
+      if (set.has(k3(n)) && !dist.has(k3(n))) {
+        dist.set(k3(n), dist.get(k3(v)) + 1);
+        queue.push(n);
+      }
+    }
+  }
+  return best;
 }
 
-function edgeOf(x, y, n) {
-  return Math.min(x, y, n - 1 - x, n - 1 - y);
-}
+// Zufällige Gänge lösen sich oft schon nach wenigen Zügen. Deshalb werden viele Kandidaten
+// geprüft und der anspruchsvollste behalten, der alle Bedingungen erfüllt.
+function buildPuzzle(rand, plan, index) {
+  let best = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (best && attempt >= SAMPLES_PER_PUZZLE) break;
+    const { cells, start } = randomShape(rand, plan.size);
+    const goal = farthest(cells, start);
+    if (k3(goal) === k3(start)) continue;
 
-// Felder am Rand des Kerns (Nachbarfeld ist Kern)
-function touchesCore(x, y, n, w) {
-  return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
-    const nx = x + dx;
-    const ny = y + dy;
-    return nx >= 0 && ny >= 0 && nx < n && ny < n && isCore(nx, ny, n, w);
-  });
-}
+    const set = new Set(cells.map(k3));
+    // Ausrichtungen, in denen der Startblock einen Stützblock hat
+    const options = ORIENTATIONS.map((_, o) => o).filter((o) => canStand(set, start, o) && o !== 0);
+    if (options.length === 0) continue;
+    const scramble = options[Math.floor(rand() * options.length)];
 
-function pick(rand, list, count) {
-  if (list.length < count) return null;
-  const copy = [...list];
-  const out = [];
-  for (let i = 0; i < count; i++) out.push(copy.splice(Math.floor(rand() * copy.length), 1)[0]);
-  return out;
+    const puzzle = { id: `p${index + 1}`, name: plan.name, cells, start, goal, scramble };
+    const withTurns = solve(puzzle);
+    if (!withTurns) continue;
+    const length = withTurns.moves + withTurns.rotations;
+    if (length < plan.minLen || withTurns.rotations < plan.minRot) continue;
+    if (solve(puzzle, { allowTurns: false })) continue;
+
+    if (!best || length > best.solution.moves + best.solution.rotations) {
+      best = { puzzle, solution: withTurns };
+    }
+  }
+  return best;
 }
 
 const rand = mulberry32(SEED);
@@ -139,20 +125,37 @@ for (let i = 0; i < PLAN.length; i++) {
   }
   results.push(res);
   console.log(
-    `${res.puzzle.id} ${res.puzzle.name}: Lösung ${res.solution.actions.length} Schritte ` +
-      `(${res.solution.moves} Bewegungen, ${res.solution.rotations} Drehungen)`,
+    `${res.puzzle.id} ${res.puzzle.name}: ${res.puzzle.cells.length} Blöcke, Lösung ` +
+      `${res.solution.moves} Schritte, ${res.solution.rotations} Drehungen`,
   );
 }
 
 const body = results
   .map(({ puzzle }) => {
-    const tiers = puzzle.tiers.map((rows) => `      [\n${rows.map((r) => `        '${r}',`).join('\n')}\n      ],`).join('\n');
-    return `  {\n    id: '${puzzle.id}',\n    name: '${puzzle.name}',\n    scramble: [${puzzle.scramble.join(', ')}],\n    tiers: [\n${tiers}\n    ],\n  },`;
+    const cells = puzzle.cells.map((c) => `[${c.join(', ')}]`).join(', ');
+    return [
+      '  {',
+      `    id: '${puzzle.id}',`,
+      `    name: '${puzzle.name}',`,
+      `    scramble: ${puzzle.scramble},`,
+      `    start: [${puzzle.start.join(', ')}],`,
+      `    goal: [${puzzle.goal.join(', ')}],`,
+      `    cells: [`,
+      ...chunk(puzzle.cells.map((c) => `[${c.join(', ')}]`), 8).map((line) => `      ${line.join(', ')},`),
+      '    ],',
+      '  },',
+    ].join('\n');
   })
   .join('\n');
 
+function chunk(list, size) {
+  const out = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
+}
+
 const file = `// Automatisch erzeugt von tools/generate-puzzles.mjs. Nicht von Hand bearbeiten.
-// Zeichen: '.' Boden, 'S' Treppe, 'P' Start, 'G' Gipfel, '#' Mauer, '_' Kern
+// cells: begehbare Blöcke [x, y, z] im Raster 0..${SIZE - 1}. scramble: Index der Startausrichtung.
 
 export const PUZZLES = [
 ${body}

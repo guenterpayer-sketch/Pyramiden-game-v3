@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Innenräume</title>
+  <meta name="description" content="Ein ruhiges 3D-Logikrätsel: Drehe die Pyramide, damit die Gänge dich zum goldenen Block führen.">
+  <style>
+    :root {
+      --ink: #3b2a1a;
+      --paper: rgba(255, 246, 228, 0.92);
+      --accent: #c2841f;
+      --accent-dark: #8e5d10;
+      --shadow: 0 10px 30px rgba(59, 42, 26, 0.25);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #f6e8cf;
+        --paper: rgba(38, 28, 18, 0.9);
+        --accent: #e0a040;
+        --accent-dark: #ffd38a;
+      }
+    }
+    :root[data-theme="dark"] {
+      --ink: #f6e8cf;
+      --paper: rgba(38, 28, 18, 0.9);
+      --accent: #e0a040;
+      --accent-dark: #ffd38a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #e9c896;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: none;
+    }
+    canvas#scene {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+    .hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hud > * { pointer-events: auto; }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .card {
+      background: var(--paper);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 10px 14px;
+      backdrop-filter: blur(6px);
+    }
+    .title { font-weight: 700; font-size: 1.05rem; }
+    .stats { font-size: 0.9rem; opacity: 0.85; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .group { display: flex; flex-direction: column; gap: 6px; }
+    .group-label { font-size: 0.75rem; opacity: 0.7; text-align: center; }
+    .row { display: flex; gap: 6px; }
+    button {
+      font: inherit;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid rgba(59, 42, 26, 0.2);
+      border-radius: 12px;
+      padding: 10px 14px;
+      min-width: 48px;
+      min-height: 48px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: transparent;
+      font-weight: 600;
+    }
+    button.ghost { background: transparent; box-shadow: none; }
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-rows: repeat(3, 56px);
+      gap: 6px;
+    }
+    .dpad button { min-width: 0; min-height: 0; width: 56px; height: 56px; padding: 0; font-size: 1.3rem; }
+    .dpad .up { grid-column: 2; grid-row: 1; }
+    .dpad .left { grid-column: 1; grid-row: 2; }
+    .dpad .right { grid-column: 3; grid-row: 2; }
+    .dpad .down { grid-column: 2; grid-row: 3; }
+    .turns { display: grid; grid-template-columns: repeat(2, auto); gap: 6px; }
+    .turns button { font-size: 0.9rem; padding: 10px 10px; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      top: 22%;
+      transform: translateX(-50%);
+      background: var(--paper);
+      padding: 10px 16px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show { opacity: 1; }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(40, 26, 12, 0.35);
+      backdrop-filter: blur(3px);
+      padding: 16px;
+      z-index: 5;
+    }
+    .overlay.hidden, .hidden { display: none !important; }
+    .panel {
+      background: var(--paper);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      width: min(440px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+    }
+    .panel h1 { margin: 0 0 4px; font-size: 1.8rem; }
+    .panel h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .panel p { line-height: 1.5; margin: 8px 0; }
+    .panel .sub { opacity: 0.75; margin-top: 0; }
+    .puzzle-list { display: grid; gap: 8px; margin: 14px 0; }
+    .puzzle-list button {
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: none;
+      width: 100%;
+    }
+    .puzzle-list .done { color: var(--accent-dark); font-weight: 600; }
+    .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .stack button { width: 100%; }
+    .toggle-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 6px 0; }
+    kbd {
+      font-family: inherit;
+      background: rgba(59, 42, 26, 0.1);
+      border-radius: 6px;
+      padding: 1px 6px;
+    }
+    @media (max-width: 600px) {
+      .hud { padding: 12px 16px; }
+      .title { font-size: 0.98rem; }
+      .panel { padding: 18px; }
+    }
+    @media (max-width: 600px) and (orientation: portrait) {
+      .turns { grid-template-columns: repeat(3, auto); }
+    }
+  </style>
+</head>
+<body>
+  <div class="hud hidden" id="hud">
+    <div class="top">
+      <div class="card">
+        <div class="title" id="puzzle-title">Rätsel</div>
+        <div class="stats" id="stats"></div>
+      </div>
+      <button id="menu-btn" aria-label="Menü">☰ Menü</button>
+    </div>
+    <div class="bottom">
+      <div class="group">
+        <div class="group-label">Gehen (Pfeiltasten / WASD)</div>
+        <div class="dpad">
+          <button class="up" data-move="up" aria-label="Vorwärts">▲</button>
+          <button class="left" data-move="left" aria-label="Links">◀</button>
+          <button class="right" data-move="right" aria-label="Rechts">▶</button>
+          <button class="down" data-move="down" aria-label="Zurück">▼</button>
+        </div>
+      </div>
+      <div class="group">
+        <div class="group-label">Pyramide drehen</div>
+        <div class="turns">
+          <button data-turn="y-">⟲ Q Drehen</button>
+          <button data-turn="y+">⟳ E Drehen</button>
+          <button data-turn="x+">⤒ R Kippen</button>
+          <button data-turn="x-">⤓ F Kippen</button>
+          <button data-turn="z+">⤏ T Kippen</button>
+          <button data-turn="z-">⤐ G Kippen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="overlay" id="start">
+    <div class="panel">
+      <h1>Innenräume</h1>
+      <p class="sub">Ein ruhiges Logikrätsel in einer Pyramide.</p>
+      <p>Die Gänge liegen im Inneren. Drehst du die Pyramide, wird eine andere Wand zum Boden. Finde die Drehungen, die dich zum goldenen Block führen. Es gibt keinen Druck: Die Zeit wird nur angezeigt.</p>
+      <div class="puzzle-list" id="puzzle-list"></div>
+      <div class="toggle-line">
+        <span>Ton</span>
+        <button class="ghost" id="start-sound" aria-pressed="true">an</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="menu">
+    <div class="panel">
+      <h2>Menü</h2>
+      <div class="stack">
+        <button class="primary" id="menu-resume">Weiter</button>
+        <button id="menu-restart">Dieses Rätsel neu beginnen</button>
+        <button id="menu-select">Rätselauswahl</button>
+        <div class="toggle-line">
+          <span>Ton</span>
+          <button class="ghost" id="menu-sound" aria-pressed="true">an</button>
+        </div>
+      </div>
+      <h2 style="margin-top:20px">So spielst du</h2>
+      <p>
+        <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> oder <kbd>W A S D</kbd>: gehen. Die Richtungen sind zur Kamera ausgerichtet.<br>
+        <kbd>Q</kbd> <kbd>E</kbd>: Pyramide um die Hochachse drehen.<br>
+        <kbd>R</kbd> <kbd>F</kbd>: Pyramide nach vorne oder hinten kippen.<br>
+        <kbd>T</kbd> <kbd>G</kbd>: Pyramide nach links oder rechts kippen.<br>
+        Mit der Maus ziehen: Blick drehen. Mausrad: Nähe.<br>
+        <kbd>Esc</kbd>: Menü.
+      </p>
+      <p>Du kannst nur drehen, wenn du danach noch auf einem Block stehst. Plane deine Schritte.</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="win">
+    <div class="panel">
+      <h2>Geschafft</h2>
+      <p id="win-stats"></p>
+      <div class="stack">
+        <button class="primary" id="win-next">Nächstes Rätsel</button>
+        <button id="win-select">Rätselauswahl</button>
+        <button id="win-again">Noch einmal ansehen</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>
