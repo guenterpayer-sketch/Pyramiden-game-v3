@@ -631,7 +631,7 @@ function updateHud() {
   $('timebar-fill').style.width = `${frac * 100}%`;
   $('timenote').textContent = game.elapsed < game.spec.target ? `Richtzeit ${fmt(game.spec.target)}, nur zur Orientierung` : 'Kein Limit. Nimm dir alle Zeit.';
   const hasCrystals = total > 0;
-  $('tip').textContent = hasCrystals ? 'Tippe auf Spiegel. Der Strahl muss die Spitze erreichen und alle Kristalle ◆ zum Leuchten bringen.' : 'Tippe auf einen Spiegel, um ihn umzulegen. Lenke den Strahl zur Spitze.';
+  $('tip').textContent = hasCrystals ? 'Lenke den Strahl zur Spitze. Alle Kristalle ◆ sollen leuchten.' : 'Tippe auf einen Spiegel und lenke den Strahl zur Spitze.';
 }
 
 let toastTimer = null;
@@ -731,8 +731,21 @@ function compAt(clientX, clientY) {
   const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
   pyrGroup.updateMatrixWorld(true);
   raycaster.setFromCamera(ndc, camera);
-  const hits = raycaster.intersectObjects(game.hitGroup.children, false);
-  return hits.length ? hits[0].object.userData.comp : -1;
+  // Das Bauteil, dessen Mitte dem Strahl am nächsten liegt (im Verhältnis zur Trefferfläche).
+  // So gewinnt bei dicht stehenden Spiegeln der, auf den man wirklich gezielt hat.
+  let best = -1;
+  let bestScore = 1;
+  const p = new THREE.Vector3();
+  for (const h of game.hitGroup.children) {
+    h.getWorldPosition(p);
+    const radius = h.scale.x;
+    const score = raycaster.ray.distanceToPoint(p) / radius;
+    if (score < bestScore) {
+      bestScore = score;
+      best = h.userData.comp;
+    }
+  }
+  return best;
 }
 
 canvas.addEventListener('pointerdown', (e) => {
