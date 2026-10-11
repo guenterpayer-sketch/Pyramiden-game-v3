@@ -1,10 +1,10 @@
 {
-  "name": "pyramiden-labyrinth",
+  "name": "lichtpyramide",
   "version": "1.0.0",
   "private": true,
   "description": "Entspanntes 3D-Rätsel: Ein Labyrinth windet sich über die vier Seiten einer Pyramide nach oben.",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/maze.test.mjs"
+    "test": "node --test tests/board.test.mjs"
   }
 }

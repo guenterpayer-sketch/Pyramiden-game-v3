@@ -3,40 +3,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Pyramidenpfad</title>
-  <meta name="description" content="Ein ruhiges 3D-Labyrinth auf den vier Seiten einer Pyramide. Finde den Weg zum goldenen Gipfel.">
+  <title>Lichtpyramide</title>
+  <meta name="description" content="Ein ruhiges 3D-Rätsel: Lenke einen Lichtstrahl über Spiegel, um die Ecken der Pyramide bis zur Spitze.">
   <style>
     :root {
-      --ink: #2e2433;
-      --paper: rgba(255, 244, 228, 0.93);
-      --accent: #b5651d;
+      --ink: #1d2140;
+      --paper: rgba(236, 240, 255, 0.94);
+      --accent: #5b4ad6;
       --accent-ink: #ffffff;
-      --line: rgba(46, 36, 51, 0.18);
-      --gold: #e8a93a;
-      --shadow: 0 10px 30px rgba(20, 12, 40, 0.35);
+      --line: rgba(29, 33, 64, 0.2);
+      --gold: #f0b43c;
+      --shadow: 0 10px 30px rgba(5, 6, 30, 0.45);
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --ink: #f4e8d6;
-        --paper: rgba(36, 28, 48, 0.92);
-        --accent: #e2a24a;
-        --accent-ink: #2a1c10;
-        --line: rgba(244, 232, 214, 0.2);
+        --ink: #e9ecff;
+        --paper: rgba(22, 26, 58, 0.94);
+        --accent: #8f7dff;
+        --accent-ink: #0c1030;
+        --line: rgba(233, 236, 255, 0.22);
       }
     }
     :root[data-theme="dark"] {
-      --ink: #f4e8d6;
-      --paper: rgba(36, 28, 48, 0.92);
-      --accent: #e2a24a;
-      --accent-ink: #2a1c10;
-      --line: rgba(244, 232, 214, 0.2);
+      --ink: #e9ecff;
+      --paper: rgba(22, 26, 58, 0.94);
+      --accent: #8f7dff;
+      --accent-ink: #0c1030;
+      --line: rgba(233, 236, 255, 0.22);
     }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
       height: 100%;
       overflow: hidden;
-      background: #2b2450;
+      background: #0c1030;
       color: var(--ink);
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       -webkit-tap-highlight-color: transparent;
@@ -119,7 +119,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(20, 12, 40, 0.45);
+      background: rgba(5, 6, 30, 0.55);
       backdrop-filter: blur(3px);
       padding: 16px;
       z-index: 5;
@@ -159,7 +159,7 @@
   <div class="hud hidden" id="hud">
     <div class="top">
       <div class="card">
-        <div class="title" id="level-title">Stufe</div>
+        <div class="title" id="level-title">Rätsel</div>
         <div class="stats" id="stats"></div>
         <div class="timebar"><div id="timebar-fill"></div></div>
         <div class="timenote" id="timenote"></div>
@@ -167,7 +167,7 @@
       <button id="menu-btn" aria-label="Menü">☰ Menü</button>
     </div>
     <div class="bottom">
-      <div class="tip" id="tip">Tippe auf ein leuchtendes Feld neben der Figur.</div>
+      <div class="tip" id="tip">Tippe auf einen Spiegel, um ihn umzulegen. Lenke den Strahl zur Spitze.</div>
       <div class="row">
         <button id="turn-left" aria-label="Pyramide nach links drehen">⟲ Drehen</button>
         <button id="hint-btn">✦ Tipp</button>
@@ -180,14 +180,14 @@
 
   <div class="overlay" id="start">
     <div class="panel">
-      <h1>Pyramidenpfad</h1>
-      <p class="sub">Ein ruhiges Labyrinth auf den vier Seiten einer Pyramide.</p>
+      <h1>Lichtpyramide</h1>
+      <p class="sub">Ein ruhiges Rätsel um Licht, Spiegel und die Ecken einer Pyramide.</p>
       <ol class="steps">
-        <li><strong>Gehen:</strong> Tippe auf ein leuchtendes Feld direkt neben der Figur. Am Computer gehen auch die Pfeiltasten.</li>
-        <li><strong>Drehen:</strong> Ziehe mit dem Finger oder der Maus, um die Pyramide zu drehen. Die Buttons „Drehen“ drehen sie um eine Viertelrunde.</li>
-        <li><strong>Ziel:</strong> Der goldene Gipfel. Sterne einzusammeln ist freiwillig.</li>
+        <li><strong>Ziel:</strong> Der Lichtstrahl soll die Spitze der Pyramide erreichen. Er startet an der leuchtenden Kugel am Fuß und folgt dem Pfeil.</li>
+        <li><strong>Spiegel umlegen:</strong> Tippe auf einen blauen Spiegel. Er klappt um, und der Strahl sucht sich sofort einen neuen Weg. Das Licht läuft auch um die Ecken auf die nächste Seite.</li>
+        <li><strong>Pyramide drehen:</strong> Ziehe mit dem Finger oder der Maus, oder nutze „Drehen“. So erreichst du die Spiegel auf der Rückseite.</li>
       </ol>
-      <p>Die Zeit wird nur angezeigt. Es gibt kein Limit.</p>
+      <p>Schwarze Steine halten das Licht auf. Rosa Kristalle ◆ sollen leuchten. Orange Prismen teilen den Strahl. Violette Spiegel sind fest. Die Zeit wird nur angezeigt, es gibt kein Limit.</p>
       <div class="levels" id="levels"></div>
       <div class="toggle-line"><span>Ton</span><button class="ghost" id="start-sound" aria-pressed="true">an</button></div>
     </div>
@@ -198,15 +198,15 @@
       <h2>Menü</h2>
       <div class="stack">
         <button class="primary" id="menu-resume">Weiter</button>
-        <button id="menu-restart">Diese Stufe neu beginnen</button>
-        <button id="menu-select">Stufenauswahl</button>
+        <button id="menu-restart">Dieses Rätsel neu beginnen</button>
+        <button id="menu-select">Rätselauswahl</button>
         <div class="toggle-line"><span>Ton</span><button class="ghost" id="menu-sound" aria-pressed="true">an</button></div>
       </div>
       <h2 style="margin-top:20px">Bedienung</h2>
       <p>
-        <strong>Gehen:</strong> auf ein leuchtendes Feld tippen, oder <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> / <kbd>W A S D</kbd>. Die Richtung gilt so, wie du sie auf dem Bildschirm siehst.<br>
-        <strong>Drehen:</strong> ziehen, oder <kbd>Q</kbd> <kbd>E</kbd>. Mausrad: näher oder weiter weg.<br>
-        <strong>Tipp:</strong> <kbd>H</kbd> zeigt ein Stück des Weges.<br>
+        <strong>Spiegel umlegen:</strong> darauf tippen oder klicken.<br>
+        <strong>Pyramide drehen:</strong> ziehen, oder <kbd>Q</kbd> <kbd>E</kbd> (auch <kbd>←</kbd> <kbd>→</kbd>). Mausrad: näher oder weiter weg.<br>
+        <strong>Tipp:</strong> <kbd>H</kbd> zeigt einen Spiegel, der falsch steht.<br>
         <kbd>Esc</kbd>: Menü.
       </p>
     </div>
@@ -217,8 +217,8 @@
       <h2>Geschafft</h2>
       <p id="win-stats"></p>
       <div class="stack">
-        <button class="primary" id="win-next">Nächste Stufe</button>
-        <button id="win-select">Stufenauswahl</button>
+        <button class="primary" id="win-next">Nächstes Rätsel</button>
+        <button id="win-select">Rätselauswahl</button>
         <button id="win-again">Noch einmal ansehen</button>
       </div>
     </div>
